@@ -118,16 +118,17 @@ class pdf_crabeSGST extends ModelePDFFactures
 		$this->posxdesc=$this->marge_gauche+1;
 		if($conf->global->PRODUCT_USE_UNITS)
 		{
-			$this->posxlocaltax1=90;
-			$this->posixlocaltax2=100;
+			$this->posxtva=90;
+			$this->posxlocaltax1=100;
 			$this->posxup=120;
 			$this->posxqty=130;
 			$this->posxunit=147;
 		}
 		else
 		{
-			$this->posxtva=112;
-			$this->posxup=126;
+			$this->posxtva=98;
+			$this->posxlocaltax1=111;
+			$this->posxup=123;
 			$this->posxqty=145;
 		}
 		$this->posxdiscount=162;
@@ -138,8 +139,8 @@ class pdf_crabeSGST extends ModelePDFFactures
 		if ($this->page_largeur < 210) // To work with US executive format
 		{
 		    $this->posxpicture-=20;
+		    $this->posxtva-=20;
 		    $this->posxlocaltax1-=20;
-		    $this->posxlocaltax2-=20;
 		    $this->posxup-=20;
 		    $this->posxqty-=20;
 		    $this->posxunit-=20;
@@ -263,7 +264,7 @@ class pdf_crabeSGST extends ModelePDFFactures
                 $default_font_size = pdf_getPDFFontSize($outputlangs);	// Must be after pdf_getInstance
                 $pdf->SetAutoPageBreak(1,0);
 
-                $heightforinfotot = 50+(4*$nbpayments);	// Height reserved to output the info and total part and payment part
+                $heightforinfotot = 40+(4*$nbpayments);	// Height reserved to output the info and total part and payment part
 		        $heightforfreetext= (isset($conf->global->MAIN_PDF_FREETEXT_HEIGHT)?$conf->global->MAIN_PDF_FREETEXT_HEIGHT:5);	// Height reserved to output the free text on last page
 	            $heightforfooter = $this->marge_basse + 8;	// Height reserved to output the footer (value include bottom margin)
 
@@ -305,8 +306,8 @@ class pdf_crabeSGST extends ModelePDFFactures
 				if (empty($this->atleastonediscount) && empty($conf->global->PRODUCT_USE_UNITS))    // retreive space not used by discount
 				{
 					$this->posxpicture+=($this->postotalht - $this->posxdiscount);
+					$this->posxtva+=($this->postotalht - $this->posxdiscount);
 					$this->posxlocaltax1+=($this->postotalht - $this->posxdiscount);
-					$this->posxlocaltax2+=($this->postotalht - $this->posxdiscount);
 					$this->posxup+=($this->postotalht - $this->posxdiscount);
 					$this->posxqty+=($this->postotalht - $this->posxdiscount);
 					$this->posxdiscount+=($this->postotalht - $this->posxdiscount);
@@ -318,8 +319,9 @@ class pdf_crabeSGST extends ModelePDFFactures
 				if ($object->situation_cycle_ref)
 				{
 					$this->situationinvoice = True;
-					$progress_width = 18;
+					$progress_width = 20;
 					$this->posxtva -= $progress_width;
+					$this->posxlocaltax1 -= $progress_width;
 					$this->posxup -= $progress_width;
 					$this->posxqty -= $progress_width;
 					if(empty($conf->global->PRODUCT_USE_UNITS)) {
@@ -439,7 +441,7 @@ class pdf_crabeSGST extends ModelePDFFactures
 					if (isset($imglinesize['width']) && isset($imglinesize['height']))
 					{
 						$curX = $this->posxpicture-1;
-						$pdf->Image($realpatharray[$i], $curX + (($this->posxtva-$this->posxpicture-$imglinesize['width'])/2), $curY, $imglinesize['width'], $imglinesize['height'], '', '', '', 2, 300);	// Use 300 dpi
+						$pdf->Image($realpatharray[$i], $curX + (($this->posxlocaltax1-$this->posxpicture-$imglinesize['width'])/2), $curY, $imglinesize['width'], $imglinesize['height'], '', '', '', 2, 300);	// Use 300 dpi
 						// $pdf->Image does not increase value return by getY, so we save it manually
 						$posYAfterImage=$curY+$imglinesize['height'];
 					}
@@ -502,14 +504,6 @@ class pdf_crabeSGST extends ModelePDFFactures
 						$pdf->SetXY($this->posxtva, $curY);
 						$pdf->MultiCell($this->posxup-$this->posxlocaltax1-0.8, 3, $vat_rate, 0, 'R');
 					}
-					
-					// localtax2 Rate
-					if (empty($conf->global->MAIN_GENERATE_DOCUMENTS_WITHOUT_VAT) && empty($conf->global->MAIN_GENERATE_DOCUMENTS_WITHOUT_VAT_COLUMN))
-					{
-						$vat_rate = pdf_getlinevatrate($object, $i, $outputlangs, $hidedetails);
-						$pdf->SetXY($this->posxtva, $curY);
-						$pdf->MultiCell($this->posxup-$this->posxlocaltax2-0.8, 3, $vat_rate, 0, 'R');
-					}
 
 					// VAT Rate
 					if (empty($conf->global->MAIN_GENERATE_DOCUMENTS_WITHOUT_VAT) && empty($conf->global->MAIN_GENERATE_DOCUMENTS_WITHOUT_VAT_COLUMN))
@@ -570,7 +564,6 @@ class pdf_crabeSGST extends ModelePDFFactures
 					}
 
 					// Discount on line
-					$pdf->SetXY($this->posixdiscount, $curY);
 					if ($object->lines[$i]->remise_percent)
 					{
                         $pdf->SetXY($this->posxdiscount-2, $curY);
@@ -1196,14 +1189,14 @@ class pdf_crabeSGST extends ModelePDFFactures
 							$tvakey=str_replace('*','',$tvakey);
 							$tvacompl = " (".$outputlangs->transnoentities("NonPercuRecuperable").")";
 						}
-						$totalvat =$outputlangs->transnoentities("TotalVAT").' ';
+						$totalvat =$outputlangs->transnoentities("Total SGST").' ';
 						$totalvat.=vatrate($tvakey,1).$tvacompl;
 						$pdf->MultiCell($col2x-$col1x, $tab2_hl, $totalvat, 0, 'L', 1);
 
 						$pdf->SetXY($col2x, $tab2_top + $tab2_hl * $index);
 						$pdf->MultiCell($largcol2, $tab2_hl, price($tvaval, 0, $outputlangs), 0, 'R', 1);
 					}
-				}
+				}																									
 
 				//Local tax 1 after VAT
 				//if (! empty($conf->global->FACTURE_LOCAL_TAX1_OPTION) && $conf->global->FACTURE_LOCAL_TAX1_OPTION=='localtax1on')
@@ -1417,11 +1410,18 @@ class pdf_crabeSGST extends ModelePDFFactures
 
 		if (empty($conf->global->MAIN_GENERATE_DOCUMENTS_WITHOUT_VAT) && empty($conf->global->MAIN_GENERATE_DOCUMENTS_WITHOUT_VAT_COLUMN))
 		{
-			$pdf->line($this->posxlocaltax2-1, $tab_top, $this->posxlocaltax2-1, $tab_top + $tab_height);
+			$pdf->line($this->posxtva-1, $tab_top, $this->posxtva-1, $tab_top + $tab_height);
 			if (empty($hidetop))
 			{
-				$pdf->SetXY($this->posxlocaltax2-1, $tab_top+1);
-				$pdf->MultiCell($this->posxup-$this->posxlocaltax2+1,2, $outputlangs->transnoentities("SGST"),'','C');
+				$pdf->SetXY($this->posxtva-2, $tab_top+1);
+				$pdf->MultiCell($this->posxlocaltax1-$this->posxtva+1,2, $outputlangs->transnoentities("SGST"),'','C');
+			}
+		
+			$pdf->line($this->posxlocaltax1-1, $tab_top, $this->posxlocaltax1-1, $tab_top + $tab_height);
+			if (empty($hidetop))
+			{
+				$pdf->SetXY($this->posxlocaltax1-1, $tab_top+1);
+				$pdf->MultiCell($this->posxup-$this->posxlocaltax1+1,2, $outputlangs->transnoentities("CGST"),'','C');
 			}
 		}
 

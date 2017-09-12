@@ -1128,8 +1128,8 @@ class pdf_MeehaaGST extends ModelePDFCommandes
 				$pdf->MultiCell($this->posxlocaltax1-$this->posxtva+1,2, $outputlangs->transnoentities("SGST"),'','C');
 			}
 		
-		$pdf->line($this->posxlocaltax1-1, $tab_top, $this->posxlocaltax1-1, $tab_top + $tab_height);
-		if (empty($hidetop))
+			$pdf->line($this->posxlocaltax1-1, $tab_top, $this->posxlocaltax1-1, $tab_top + $tab_height);
+			if (empty($hidetop))
 			{
 			$pdf->SetXY($this->posxlocaltax1-1, $tab_top+1);
 			$pdf->MultiCell($this->posxup-$this->posxlocaltax1+1,2, $outputlangs->transnoentities("CGST"),'','C');
